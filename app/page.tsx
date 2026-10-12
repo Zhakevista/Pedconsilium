@@ -88,7 +88,7 @@ export default function QueueApp() {
             update(ref(db, `queues/${subjectId}/timer`), { isRunning: false });
             try {
               const audio = new Audio('/bell.mp3');
-              audio.play();
+              audio.play().catch(() => {});
             } catch (e) {}
           }
           return nextTime;
@@ -100,26 +100,33 @@ export default function QueueApp() {
 
   const myEntryId = myQueues[subjectId];
   const myIndex = queueList.findIndex((item) => item.id === myEntryId);
-  const peopleAhead = myIndex !== -1 ? myIndex : 0;
+  
+  // Точный расчет: если человек первый в списке ожидания, а у учителя кто-то сидит (или даже если список только начался), 
+  // учитываем статус текущего посетителя. Если мой ID совпадает с первым в списке, перед мной ровно столько человек, 
+  // сколько сидит у учителя (1, если кто-то зашел, и 0 если никого).
+  let peopleAhead = 0;
+  if (myIndex !== -1) {
+    peopleAhead = current ? myIndex + 1 : myIndex;
+  }
+
   const isMyTurn = current && current.id === myEntryId;
   const isSoonTurn = !isMyTurn && peopleAhead === 1;
 
-  // Звуковое уведомление, когда остался 1 человек
+  // Звуковые уведомления
   useEffect(() => {
     if (isSoonTurn) {
       try {
         const audio = new Audio('/bell.mp3');
-        audio.play();
+        audio.play().catch(() => {});
       } catch (e) {}
     }
   }, [isSoonTurn]);
 
-  // Звуковое уведомление, когда подошла очередь
   useEffect(() => {
     if (isMyTurn) {
       try {
         const audio = new Audio('/notification.mp3');
-        audio.play();
+        audio.play().catch(() => {});
       } catch (e) {}
     }
   }, [isMyTurn]);
