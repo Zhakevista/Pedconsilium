@@ -19,9 +19,15 @@ export default function QueueApp() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   const [parentName, setParentName] = useState('');
-  const [myId, setMyId] = useState<string | null>(null);
-  const [isMyTurn, setIsMyTurn] = useState(false);
-  const [isSoonTurn, setIsSoonTurn] = useState(false);
+  // Сохраняем список всех предметов, на которые записался родитель (например: { history: "-N123...", math: "-N456..." })
+  const [myQueues, setMyQueues] = useState<{ [key: string]: string }>({});
+
+  const subjects = [
+    { id: 'history', name: 'История Казахстана' },
+    { id: 'math', name: 'Алгебра' },
+    { id: 'physics', name: 'Физика' },
+    { id: 'informatics', name: 'Информатика' }
+  ];
 
   useEffect(() => {
     try {
@@ -43,6 +49,7 @@ export default function QueueApp() {
     }
   }, []);
 
+  // Слушаем очередь выбранного предмета
   useEffect(() => {
     if (!db) return;
     const queueRef = ref(db, `queues/${subjectId}`);
@@ -71,6 +78,7 @@ export default function QueueApp() {
     return () => unsubscribe();
   }, [db, subjectId]);
 
+  // Таймер учителя
   useEffect(() => {
     let interval: any = null;
     if (db && isTimerRunning && timer > 0) {
@@ -93,26 +101,21 @@ export default function QueueApp() {
     return () => clearInterval(interval);
   }, [db, isTimerRunning, timer, subjectId]);
 
-  const myIndex = queueList.findIndex((item) => item.id === myId);
+  const myEntryId = myQueues[subjectId];
+  const myIndex = queueList.findIndex((item) => item.id === myEntryId);
   const peopleAhead = myIndex !== -1 ? myIndex : 0;
+  const isMyTurn = current && current.id === myEntryId;
+  const isSoonTurn = !isMyTurn && peopleAhead === 1;
 
+  // Звуковое уведомление
   useEffect(() => {
-    if (myId && current && current.id === myId) {
-      setIsMyTurn(true);
-      setIsSoonTurn(false);
+    if (isMyTurn) {
       try {
         const audio = new Audio('/notification.mp3');
         audio.play();
       } catch (e) {}
-    } else {
-      setIsMyTurn(false);
-      if (myId && peopleAhead === 1) {
-        setIsSoonTurn(true);
-      } else {
-        setIsSoonTurn(false);
-      }
     }
-  }, [current, myId, peopleAhead]);
+  }, [isMyTurn]);
 
   if (errorMsg) {
     return (
@@ -129,24 +132,10 @@ export default function QueueApp() {
     return (
       <div className="min-h-screen bg-[#1e3a8a] flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center space-y-6">
-          <h1 className="text-2xl font-black text-[#1e3a8a]">Электронная очередь</h1>
-          <p className="text-gray-500 text-sm">Школьное родительское собрание</p>
+          <h1 className="text-2xl font-black text-[#1e3a8a]">Педконсилиум</h1>
+          <p className="text-gray-500 text-sm">Электронная очередь родительского собрания</p>
           
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2 text-left">Выберите предмет:</label>
-              <select 
-                value={subjectId} 
-                onChange={(e) => setSubjectId(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl font-semibold text-gray-800 focus:ring-2 focus:ring-[#1e3a8a]"
-              >
-                <option value="history">История Казахстана</option>
-                <option value="math">Алгебра</option>
-                <option value="physics">Физика</option>
-                <option value="informatics">Информатика</option>
-              </select>
-            </div>
-
             <button
               onClick={() => setView('teacher_login')}
               className="w-full bg-[#1e3a8a] hover:bg-blue-900 text-white font-bold py-4 rounded-xl text-lg shadow-lg transition"
@@ -155,7 +144,7 @@ export default function QueueApp() {
             </button>
 
             <button
-              onClick={() => setView('parent')}
+              onClick={() => setView('parent_login')}
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-lg shadow-lg transition"
             >
               Я — Родитель 📱
@@ -171,15 +160,24 @@ export default function QueueApp() {
       <div className="min-h-screen bg-[#1e3a8a] flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center space-y-6">
           <h2 className="text-2xl font-bold text-[#1e3a8a]">Вход для учителя</h2>
-          <p className="text-gray-500 text-sm">Введите ваш PIN-код для доступа к управлению</p>
+          <p className="text-gray-500 text-sm">Выберите предмет для управления очередью</p>
           
+          <select 
+            value={subjectId} 
+            onChange={(e) => setSubjectId(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl font-semibold text-gray-800 focus:ring-2 focus:ring-[#1e3a8a]"
+          >
+            {subjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+
           <input
             type="password"
             placeholder="PIN-код"
             value={teacherPin}
             onChange={(e) => setTeacherPin(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-xl text-center text-xl tracking-widest focus:ring-2 focus:ring-[#1e3a8a]"
-            autoFocus
           />
 
           <div className="flex gap-3">
@@ -209,12 +207,13 @@ export default function QueueApp() {
 
   if (view === 'teacher') {
     const isTimeOut = timer === 0;
+    const currentSubjectName = subjects.find(s => s.id === subjectId)?.name || subjectId;
     return (
       <div className={`min-h-screen p-6 transition-colors duration-500 ${isTimeOut ? 'bg-red-600 animate-pulse' : 'bg-gray-100'}`}>
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="bg-[#1e3a8a] text-white p-6 rounded-2xl shadow-lg flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-black">Кабинет учителя ({subjectId.toUpperCase()})</h1>
+              <h1 className="text-2xl font-black">Кабинет учителя: {currentSubjectName}</h1>
               <p className="text-blue-200 text-xs">Панель управления очередью</p>
             </div>
             <button 
@@ -317,103 +316,173 @@ export default function QueueApp() {
     );
   }
 
-  const estimatedTime = peopleAhead * 5;
-
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-4">
-      <div className="max-w-md w-full space-y-6 pt-4">
-        <div className="bg-[#1e3a8a] text-white p-6 rounded-2xl shadow-lg text-center flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-black">Электронная очередь</h1>
-            <p className="text-blue-200 text-xs mt-1">Предмет: {subjectId.toUpperCase()}</p>
-          </div>
-          <button 
-            onClick={() => { setView('select'); setMyId(null); }}
-            className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
-          >
-            Сменить предмет
-          </button>
-        </div>
-
-        {isSoonTurn && (
-          <div className="bg-yellow-500 text-white p-5 rounded-2xl shadow-xl text-center">
-            <h2 className="text-xl font-black">СКОРО ВАША ОЧЕРЕДЬ!</h2>
-            <p className="text-xs mt-1">Приготовьтесь, перед вами остался всего 1 человек</p>
-          </div>
-        )}
-
-        {isMyTurn && (
-          <div className="bg-green-500 text-white p-6 rounded-2xl shadow-2xl text-center animate-bounce">
-            <h2 className="text-2xl font-black">ВАША ОЧЕРЕДЬ!</h2>
-            <p className="text-sm mt-1">Пройдите в кабинет к учителю</p>
-          </div>
-        )}
-
-        {!myId ? (
-          <div className="bg-white p-6 rounded-2xl shadow-xl">
-            <h2 className="text-lg font-bold text-gray-800 mb-4">Встать в очередь</h2>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              if (!parentName.trim()) return;
-              const newListRef = ref(db, `queues/${subjectId}/list`);
-              const newEntry = await push(newListRef, {
-                name: parentName.trim(),
-                joinedAt: Date.now(),
-              });
-              setMyId(newEntry.key);
-            }} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">ФИО Ученика / Родителя</label>
-                <input
-                  type="text"
-                  placeholder="Например: Алихан Султанов"
-                  value={parentName}
-                  onChange={(e) => setParentName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a]"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-[#1e3a8a] hover:bg-blue-900 text-white font-bold py-4 rounded-xl text-lg shadow transition"
-              >
-                Встать в очередь
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div className="bg-white p-6 rounded-2xl shadow-xl space-y-6 text-center">
+  // Экран авторизации родителя по имени
+  if (view === 'parent_login') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full space-y-6">
+          <h2 className="text-2xl font-bold text-[#1e3a8a] text-center">Вход для родителей</h2>
+          <p className="text-gray-500 text-sm text-center">Введите ваши данные, чтобы управлять записями ко всем учителям</p>
+          
+          <div className="space-y-4">
             <div>
-              <span className="text-gray-400 font-bold text-xs uppercase">Ваше имя</span>
-              <div className="text-xl font-bold text-gray-800 mt-1">{parentName}</div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">ФИО Родителя / Ученика</label>
+              <input
+                type="text"
+                placeholder="Например: Айжан Султанова"
+                value={parentName}
+                onChange={(e) => setParentName(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#1e3a8a]"
+              />
             </div>
-
-            {current && current.id === myId ? (
-              <div className="bg-green-50 border-2 border-green-500 p-4 rounded-xl">
-                <span className="text-green-600 font-bold text-lg">Вы сейчас на приеме у учителя!</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <span className="text-xs text-gray-500 block">Перед вами</span>
-                  <span className="text-3xl font-black text-[#1e3a8a]">{peopleAhead}</span>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <span className="text-xs text-gray-500 block">Ожидание</span>
-                  <span className="text-3xl font-black text-[#1e3a8a]">~{estimatedTime} мин</span>
-                </div>
-              </div>
-            )}
-
             <button
-              onClick={() => setMyId(null)}
-              className="text-red-500 hover:underline text-sm font-semibold"
+              onClick={() => {
+                if (!parentName.trim()) {
+                  alert('Пожалуйста, введите ваше имя');
+                  return;
+                }
+                setView('parent_dashboard');
+              }}
+              className="w-full bg-[#1e3a8a] hover:bg-blue-900 text-white font-bold py-4 rounded-xl text-lg shadow transition"
             >
-              Выйти из очереди
+              Продолжить ➡️
+            </button>
+            <button
+              onClick={() => setView('select')}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition"
+            >
+              Назад
             </button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Личный кабинет родителя (выбор предметов и статус всех записей)
+  if (view === 'parent_dashboard') {
+    const currentSubObj = subjects.find(s => s.id === subjectId);
+    const estimatedTime = peopleAhead * 5;
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-4">
+        <div className="max-w-md w-full space-y-6 pt-4">
+          <div className="bg-[#1e3a8a] text-white p-6 rounded-2xl shadow-lg text-center flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-black">Кабинет родителя</h1>
+              <p className="text-blue-200 text-xs mt-1">{parentName}</p>
+            </div>
+            <button 
+              onClick={() => { setView('parent_login'); }}
+              className="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-lg text-xs font-bold transition"
+            >
+              Сменить имя
+            </button>
+          </div>
+
+          {/* Уведомления */}
+          {isSoonTurn && (
+            <div className="bg-yellow-500 text-white p-5 rounded-2xl shadow-xl text-center">
+              <h2 className="text-xl font-black">СКОРО ВАША ОЧЕРЕДЬ!</h2>
+              <p className="text-xs mt-1">По предмету: {currentSubObj?.name}. Перед вами 1 человек</p>
+            </div>
+          )}
+
+          {isMyTurn && (
+            <div className="bg-green-500 text-white p-6 rounded-2xl shadow-2xl text-center animate-bounce">
+              <h2 className="text-2xl font-black">ВАША ОЧЕРЕДЬ!</h2>
+              <p className="text-sm mt-1">Пройдите к учителю ({currentSubObj?.name})</p>
+            </div>
+          )}
+
+          {/* Блок выбора предмета для записи */}
+          <div className="bg-white p-6 rounded-2xl shadow-xl space-y-4">
+            <h2 className="text-lg font-bold text-gray-800">Запись к учителям</h2>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Выберите предмет</label>
+              <select 
+                value={subjectId} 
+                onChange={(e) => setSubjectId(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl font-semibold text-gray-800 focus:ring-2 focus:ring-[#1e3a8a]"
+              >
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {myQueues[s.id] ? '✅ (Вы записаны)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {!myEntryId ? (
+              <button
+                onClick={async () => {
+                  const newListRef = ref(db, `queues/${subjectId}/list`);
+                  const newEntry = await push(newListRef, {
+                    name: parentName.trim(),
+                    joinedAt: Date.now(),
+                  });
+                  setMyQueues({ ...myQueues, [subjectId]: newEntry.key });
+                }}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition"
+              >
+                Встать в очередь по предмету: {currentSubObj?.name}
+              </button>
+            ) : (
+              <div className="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                <span className="text-xs text-blue-800 font-semibold block">Вы в очереди по этому предмету</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Перед вами</span>
+                    <span className="text-2xl font-black text-[#1e3a8a]">{peopleAhead}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500 block">Ожидание</span>
+                    <span className="text-2xl font-black text-[#1e3a8a]">~{estimatedTime} мин</span>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    await remove(ref(db, `queues/${subjectId}/list/${myEntryId}`));
+                    const updated = { ...myQueues };
+                    delete updated[subjectId];
+                    setMyQueues(updated);
+                  }}
+                  className="text-red-500 hover:underline text-xs font-bold pt-2 block mx-auto"
+                >
+                  Отменить запись по этому предмету
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Список всех активных записей родителя */}
+          <div className="bg-white p-6 rounded-2xl shadow-xl space-y-3">
+            <h3 className="text-sm font-bold text-gray-700 uppercase">Ваши активные записи:</h3>
+            {Object.keys(myQueues).length === 0 ? (
+              <p className="text-gray-400 text-xs text-center py-2">Вы еще не записаны ни к одному учителю</p>
+            ) : (
+              <div className="space-y-2">
+                {Object.keys(myQueues).map((subKey) => {
+                  const subName = subjects.find(s => s.id === subKey)?.name || subKey;
+                  return (
+                    <div key={subKey} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                      <span className="font-bold text-gray-800 text-sm">{subName}</span>
+                      <button 
+                        onClick={() => setSubjectId(subKey)}
+                        className="text-xs bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg font-semibold"
+                      >
+                        Посмотреть
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
