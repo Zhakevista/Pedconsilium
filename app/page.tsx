@@ -104,6 +104,17 @@ export default function QueueApp() {
   const isMyTurn = current && current.id === myEntryId;
   const isSoonTurn = !isMyTurn && peopleAhead === 1;
 
+  // Звуковое уведомление, когда остался 1 человек
+  useEffect(() => {
+    if (isSoonTurn) {
+      try {
+        const audio = new Audio('/bell.mp3');
+        audio.play();
+      } catch (e) {}
+    }
+  }, [isSoonTurn]);
+
+  // Звуковое уведомление, когда подошла очередь
   useEffect(() => {
     if (isMyTurn) {
       try {
