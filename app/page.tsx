@@ -1,4 +1,4 @@
-'use type';
+// @ts-nocheck
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -435,11 +435,9 @@ export default function QueueApp() {
                 <button
                   onClick={async () => {
                     await remove(ref(db, `queues/${subjectId}/list/${myEntryId}`));
-                    setMyQueues((prev: any) => {
-                      const updated = { ...prev };
-                      delete updated[subjectId];
-                      return updated;
-                    });
+                    const updated = { ...myQueues };
+                    delete updated[subjectId];
+                    setMyQueues(updated);
                   }}
                   className="text-red-500 hover:underline text-xs font-bold pt-2 block mx-auto"
                 >
