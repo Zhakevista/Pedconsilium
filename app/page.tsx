@@ -88,6 +88,7 @@ export default function QueueApp() {
             update(ref(db, `queues/${subjectId}/timer`), { isRunning: false });
             try {
               const audio = new Audio('/bell.mp3');
+              audio.currentTime = 0;
               audio.play().catch(() => {});
             } catch (e) {}
           }
@@ -101,9 +102,6 @@ export default function QueueApp() {
   const myEntryId = myQueues[subjectId];
   const myIndex = queueList.findIndex((item) => item.id === myEntryId);
   
-  // Точный расчет: если человек первый в списке ожидания, а у учителя кто-то сидит (или даже если список только начался), 
-  // учитываем статус текущего посетителя. Если мой ID совпадает с первым в списке, перед мной ровно столько человек, 
-  // сколько сидит у учителя (1, если кто-то зашел, и 0 если никого).
   let peopleAhead = 0;
   if (myIndex !== -1) {
     peopleAhead = current ? myIndex + 1 : myIndex;
@@ -112,21 +110,26 @@ export default function QueueApp() {
   const isMyTurn = current && current.id === myEntryId;
   const isSoonTurn = !isMyTurn && peopleAhead === 1;
 
-  // Звуковые уведомления
+  // Звуковое уведомление, когда остался 1 человек
   useEffect(() => {
     if (isSoonTurn) {
       try {
         const audio = new Audio('/bell.mp3');
+        audio.currentTime = 0;
         audio.play().catch(() => {});
       } catch (e) {}
     }
   }, [isSoonTurn]);
 
+  // Звуковое уведомление, когда подошла очередь (сброс currentTime для повторного срабатывания)
   useEffect(() => {
     if (isMyTurn) {
       try {
         const audio = new Audio('/notification.mp3');
-        audio.play().catch(() => {});
+        audio.currentTime = 0;
+        audio.play().catch((e) => {
+          console.log("Audio play blocked:", e);
+        });
       } catch (e) {}
     }
   }, [isMyTurn]);
@@ -426,72 +429,3 @@ export default function QueueApp() {
             {!myEntryId ? (
               <button
                 onClick={async () => {
-                  const newListRef = ref(db, `queues/${subjectId}/list`);
-                  const newEntry = await push(newListRef, {
-                    name: parentName.trim(),
-                    joinedAt: Date.now(),
-                  });
-                  setMyQueues({ ...myQueues, [subjectId]: newEntry.key });
-                }}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow transition"
-              >
-                Встать в очередь по предмету: {currentSubObj?.name}
-              </button>
-            ) : (
-              <div className="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
-                <span className="text-xs text-blue-800 font-semibold block">Вы в очереди по этому предмету</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] text-gray-500 block">Перед вами</span>
-                    <span className="text-2xl font-black text-[#1e3a8a]">{peopleAhead}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-500 block">Ожидание</span>
-                    <span className="text-2xl font-black text-[#1e3a8a]">~{estimatedTime} мин</span>
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    await remove(ref(db, `queues/${subjectId}/list/${myEntryId}`));
-                    const updated = { ...myQueues };
-                    delete updated[subjectId];
-                    setMyQueues(updated);
-                  }}
-                  className="text-red-500 hover:underline text-xs font-bold pt-2 block mx-auto"
-                >
-                  Отменить запись по этому предмету
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-xl space-y-3">
-            <h3 className="text-sm font-bold text-gray-700 uppercase">Ваши активные записи:</h3>
-            {Object.keys(myQueues).length === 0 ? (
-              <p className="text-gray-400 text-xs text-center py-2">Вы еще не записаны ни к одному учителю</p>
-            ) : (
-              <div className="space-y-2">
-                {Object.keys(myQueues).map((subKey) => {
-                  const subName = subjects.find(s => s.id === subKey)?.name || subKey;
-                  return (
-                    <div key={subKey} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                      <span className="font-bold text-gray-800 text-sm">{subName}</span>
-                      <button 
-                        onClick={() => setSubjectId(subKey)}
-                        className="text-xs bg-[#1e3a8a] text-white px-3 py-1.5 rounded-lg font-semibold"
-                      >
-                        Посмотреть
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-}
