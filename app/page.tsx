@@ -19,8 +19,7 @@ export default function QueueApp() {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   const [parentName, setParentName] = useState('');
-  // Сохраняем список всех предметов, на которые записался родитель (например: { history: "-N123...", math: "-N456..." })
-  const [myQueues, setMyQueues] = useState<{ [key: string]: string }>({});
+  const [myQueues, setMyQueues] = useState<any>({});
 
   const subjects = [
     { id: 'history', name: 'История Казахстана' },
@@ -49,7 +48,6 @@ export default function QueueApp() {
     }
   }, []);
 
-  // Слушаем очередь выбранного предмета
   useEffect(() => {
     if (!db) return;
     const queueRef = ref(db, `queues/${subjectId}`);
@@ -78,7 +76,6 @@ export default function QueueApp() {
     return () => unsubscribe();
   }, [db, subjectId]);
 
-  // Таймер учителя
   useEffect(() => {
     let interval: any = null;
     if (db && isTimerRunning && timer > 0) {
@@ -107,7 +104,6 @@ export default function QueueApp() {
   const isMyTurn = current && current.id === myEntryId;
   const isSoonTurn = !isMyTurn && peopleAhead === 1;
 
-  // Звуковое уведомление
   useEffect(() => {
     if (isMyTurn) {
       try {
@@ -316,13 +312,12 @@ export default function QueueApp() {
     );
   }
 
-  // Экран авторизации родителя по имени
   if (view === 'parent_login') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full space-y-6">
           <h2 className="text-2xl font-bold text-[#1e3a8a] text-center">Вход для родителей</h2>
-          <p className="text-gray-500 text-sm text-center">Введите ваши данные, чтобы управлять записями ко всем учителям</p>
+          <p className="text-gray-500 text-sm text-center">Введите ваши данные, чтобы записываться к учителям</p>
           
           <div className="space-y-4">
             <div>
@@ -359,7 +354,6 @@ export default function QueueApp() {
     );
   }
 
-  // Личный кабинет родителя (выбор предметов и статус всех записей)
   if (view === 'parent_dashboard') {
     const currentSubObj = subjects.find(s => s.id === subjectId);
     const estimatedTime = peopleAhead * 5;
@@ -380,7 +374,6 @@ export default function QueueApp() {
             </button>
           </div>
 
-          {/* Уведомления */}
           {isSoonTurn && (
             <div className="bg-yellow-500 text-white p-5 rounded-2xl shadow-xl text-center">
               <h2 className="text-xl font-black">СКОРО ВАША ОЧЕРЕДЬ!</h2>
@@ -395,7 +388,6 @@ export default function QueueApp() {
             </div>
           )}
 
-          {/* Блок выбора предмета для записи */}
           <div className="bg-white p-6 rounded-2xl shadow-xl space-y-4">
             <h2 className="text-lg font-bold text-gray-800">Запись к учителям</h2>
             <div>
@@ -443,9 +435,11 @@ export default function QueueApp() {
                 <button
                   onClick={async () => {
                     await remove(ref(db, `queues/${subjectId}/list/${myEntryId}`));
-                    const updated = { ...myQueues };
-                    delete updated[subjectId];
-                    setMyQueues(updated);
+                    setMyQueues((prev: any) => {
+                      const updated = { ...prev };
+                      delete updated[subjectId];
+                      return updated;
+                    });
                   }}
                   className="text-red-500 hover:underline text-xs font-bold pt-2 block mx-auto"
                 >
@@ -455,7 +449,6 @@ export default function QueueApp() {
             )}
           </div>
 
-          {/* Список всех активных записей родителя */}
           <div className="bg-white p-6 rounded-2xl shadow-xl space-y-3">
             <h3 className="text-sm font-bold text-gray-700 uppercase">Ваши активные записи:</h3>
             {Object.keys(myQueues).length === 0 ? (
