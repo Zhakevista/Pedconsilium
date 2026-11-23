@@ -28,19 +28,33 @@ const TIMER_SEC = Number(process.env.TIMER_SEC) || Math.round((Number(CONFIG.min
 
 // Каждая строка в "teachers" — отдельная очередь (предмет + учитель).
 // Ключ очереди вычисляется из названия предмета и имени учителя.
-const SUBJECTS = (CONFIG.teachers || [])
-  .map((t) => ({ name: String(t.subject || '').trim(), teacher: String(t.teacher || '').trim() }))
+// Поля можно называть по-английски, по-казахски или по-русски, регистр и пробелы не важны.
+function pick(obj, names) {
+  for (const k of Object.keys(obj || {})) {
+    if (names.includes(k.trim().toLowerCase())) return String(obj[k] == null ? '' : obj[k]).trim();
+  }
+  return '';
+}
+const SUBJECT_FIELDS = ['subject', 'пән', 'пан', 'предмет'];
+const TEACHER_FIELDS = ['teacher', 'мұғалім', 'мугалим', 'учитель', 'teacher name', 'name'];
+const rawList = CONFIG.teachers || CONFIG['мұғалімдер'] || CONFIG['учителя'] || [];
+const usedKeys = new Set();
+const SUBJECTS = rawList
+  .map((t) => (typeof t === 'string' ? { name: t.trim(), teacher: '' } : { name: pick(t, SUBJECT_FIELDS), teacher: pick(t, TEACHER_FIELDS) }))
   .filter((t) => t.name)
-  .map((t) => ({
-    key: 'k' + crypto.createHash('sha1').update(t.name + '|' + t.teacher).digest('hex').slice(0, 8),
-    name: t.name,
-    teacher: t.teacher,
-  }));
+  .map((t) => {
+    let key = 'k' + crypto.createHash('sha1').update(t.name + '|' + t.teacher).digest('hex').slice(0, 8);
+    while (usedKeys.has(key)) key += 'x'; // одинаковые строки — всё равно разные очереди
+    usedKeys.add(key);
+    return { key, name: t.name, teacher: t.teacher };
+  });
 if (!SUBJECTS.length) {
   console.error('ОШИБКА: в config.json нет ни одного предмета');
   process.exit(1);
 }
 const SUBJECT_BY_KEY = Object.fromEntries(SUBJECTS.map((s) => [s.key, s]));
+console.log('Очереди из config.json:');
+for (const s of SUBJECTS) console.log('  • ' + s.name + (s.teacher ? ' — ' + s.teacher : '   (учитель не указан)'));
 const labelOf = (key) => {
   const s = SUBJECT_BY_KEY[key];
   return s ? s.name + (s.teacher ? ' · ' + s.teacher : '') : '';
