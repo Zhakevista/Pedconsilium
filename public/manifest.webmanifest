@@ -1,0 +1,9 @@
+{
+  "name": "Педконсилиум",
+  "short_name": "Педконсилиум",
+  "start_url": "/?role=parent",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#0b6e8a",
+  "icons": [{ "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }]
+}

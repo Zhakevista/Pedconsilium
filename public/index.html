@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6e8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Педконсилиум">
+<link rel="icon" href="/icon.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Педконсилиум</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Ата-анаға арналған хабарлама (әрқашан жоғарыда) -->
+<div id="alert" class="alert hidden" role="alert" aria-live="assertive"></div>
+
+<main id="app">
+
+  <!-- 1. Рөлді таңдау -->
+  <section id="screen-role" class="screen">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">П</div>
+      <h1>Педконсилиум</h1>
+      <p class="muted">Ата-аналар жиналысының электрондық кезегі</p>
+    </div>
+    <div class="stack">
+      <button class="btn btn-xl btn-primary" data-go="parent-login">Мен — ата-анамын</button>
+      <button class="btn btn-xl" data-go="teacher-login">Мен — мұғаліммін</button>
+    </div>
+  </section>
+
+  <!-- 2. Мұғалімнің кіруі -->
+  <section id="screen-teacher-login" class="screen hidden">
+    <button class="back" data-go="role">← Артқа</button>
+    <h2>Мұғалімге кіру</h2>
+    <p class="label">Пәніңіз</p>
+    <div id="t-subjects" class="choice-grid"></div>
+    <label class="label" for="t-pin">PIN-код</label>
+    <input id="t-pin" class="input input-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="••••">
+    <p id="t-login-error" class="error" role="alert"></p>
+    <button id="t-login-btn" class="btn btn-xl btn-primary">Кіру</button>
+  </section>
+
+  <!-- 3. Мұғалім панелі -->
+  <section id="screen-teacher" class="screen hidden">
+    <header class="topbar">
+      <div>
+        <div class="muted small">Мұғалім кабинеті</div>
+        <div id="t-subject-name" class="topbar-title"></div>
+      </div>
+      <button id="t-logout" class="btn btn-sm btn-ghost">Шығу</button>
+    </header>
+
+    <div id="t-current" class="card current-card">
+      <div class="muted small">Қазір қабылдауда</div>
+      <div id="t-current-name" class="current-name">—</div>
+      <div id="t-current-child" class="current-child"></div>
+      <div id="t-timer" class="timer" aria-live="polite">05:00</div>
+      <div id="t-timer-note" class="timer-note"></div>
+    </div>
+
+    <button id="t-next" class="btn btn-xl btn-primary btn-next">
+      <span>Келесісін шақыру</span>
+      <span id="t-next-name" class="btn-sub"></span>
+    </button>
+    <div class="row">
+      <button id="t-finish" class="btn">Қабылдауды аяқтау</button>
+      <button id="t-restart" class="btn">Таймерді қайта бастау</button>
+    </div>
+
+    <div class="section-head">
+      <h3>Кезек</h3>
+      <span id="t-queue-count" class="pill">0</span>
+    </div>
+    <ol id="t-queue" class="queue-list"></ol>
+    <p id="t-queue-empty" class="muted center">Кезек бос</p>
+
+    <div class="footer-row">
+      <span class="muted small">Бүгін қабылданды: <b id="t-served">0</b></span>
+      <button id="t-reset" class="btn btn-sm btn-ghost">Кезекті тазалау</button>
+    </div>
+  </section>
+
+  <!-- 4. Ата-ананың кіруі -->
+  <section id="screen-parent-login" class="screen hidden">
+    <button class="back" data-go="role">← Артқа</button>
+    <h2>Ата-анаға кіру</h2>
+    <label class="label" for="p-name">Сіздің аты-жөніңіз</label>
+    <input id="p-name" class="input" type="text" autocomplete="name" autocapitalize="words" placeholder="Мысалы: Ахметова Айгерим Серікқызы" maxlength="80">
+    <label class="label" for="p-child">Баланың аты-жөні және сыныбы</label>
+    <input id="p-child" class="input" type="text" autocomplete="off" autocapitalize="words" placeholder="Мысалы: Ахметов Нұрлан, 9 «А»" maxlength="80">
+    <p id="p-login-error" class="error" role="alert"></p>
+    <button id="p-login-btn" class="btn btn-xl btn-primary">Жалғастыру</button>
+    <p class="muted small">Деректер бір рет енгізіледі. Содан кейін бірнеше мұғалімге бірден жазыла аласыз.</p>
+  </section>
+
+  <!-- 5. Ата-ананың жеке кабинеті -->
+  <section id="screen-parent" class="screen hidden">
+    <header class="topbar">
+      <div>
+        <div class="muted small">Жеке кабинет</div>
+        <div id="p-me" class="topbar-title"></div>
+        <div id="p-me-child" class="me-child"></div>
+      </div>
+      <button id="p-logout" class="btn btn-sm btn-ghost">Шығу</button>
+    </header>
+
+    <div id="p-active-block" class="hidden">
+      <h3>Белсенді жазылуларыңыз</h3>
+      <div id="p-tabs" class="tabs" role="tablist"></div>
+      <div id="p-status" class="card status-card"></div>
+    </div>
+
+    <h3 id="p-join-title">Мұғалімге жазылу</h3>
+    <div id="p-subjects" class="subject-list"></div>
+
+    <div id="p-done-block" class="hidden">
+      <h3>Аяқталған кездесулер</h3>
+      <div id="p-done" class="done-list"></div>
+    </div>
+
+    <div id="p-device" class="device-card">
+      <div id="p-device-status" class="device-status"></div>
+      <button id="p-test-sound" class="btn btn-sm">Дыбысты тексеру</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Бет қайта жүктелгеннен кейін дыбысты қосу (браузер басуды талап етеді) -->
+<div id="unlock" class="unlock hidden">
+  <div class="unlock-box">
+    <div class="unlock-icon" aria-hidden="true">🔔</div>
+    <p>Шақыруды есту үшін дыбысты қосыңыз</p>
+    <button id="unlock-btn" class="btn btn-xl btn-primary">Дыбысты қосу</button>
+  </div>
+</div>
+
+<div id="offline" class="offline hidden">Сервермен байланыс жоқ — қайта қосылуда…</div>
+
+<!-- Ескі iOS үшін экранның сөнбеуінің қосалқы тәсілі -->
+<video id="keepawake" playsinline muted loop preload="auto" aria-hidden="true">
+  <source src="/keepawake.mp4" type="video/mp4">
+</video>
+
+<script src="/app.js"></script>
+</body>
+</html>

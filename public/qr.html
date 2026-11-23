@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR-код — Педконсилиум</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #16202c; background: #fff; }
+  .poster { max-width: 800px; margin: 0 auto; padding: 32px 24px; text-align: center; }
+  h1 { font-size: 3rem; font-weight: 800; color: #0b6e8a; margin: 0 0 8px; letter-spacing: -0.02em; }
+  .lead { font-size: 1.6rem; font-weight: 700; margin: 0 0 24px; }
+  #qr { width: min(80vw, 520px); height: auto; border: 4px solid #0b6e8a; border-radius: 22px; padding: 6px; }
+  ol { text-align: left; font-size: 1.35rem; line-height: 1.5; max-width: 560px; margin: 24px auto; padding-left: 1.4em; }
+  .url { font-size: 1.3rem; font-weight: 700; word-break: break-all; margin-top: 10px; }
+  .tools { border-top: 1px solid #dde2e8; margin-top: 30px; padding-top: 16px; font-size: 1rem; }
+  .tools input { width: 100%; font: inherit; padding: 10px; border: 1.5px solid #c3cad3; border-radius: 12px; margin: 8px 0; }
+  .tools button { font: inherit; font-weight: 700; padding: 12px 20px; border: none; border-radius: 12px; background: #0b6e8a; color: #fff; cursor: pointer; }
+  @media print { .tools { display: none; } .poster { padding-top: 10mm; } }
+</style>
+</head>
+<body>
+<div class="poster">
+  <h1>Педконсилиум</h1>
+  <p class="lead">Мұғалімдерге электрондық кезек</p>
+  <img id="qr" alt="Кезекке кіруге арналған QR-код">
+  <div id="url" class="url"></div>
+  <ol>
+    <li>Телефон камерасын QR-кодқа бағыттап, сілтемені ашыңыз.</li>
+    <li>Аты-жөніңізді және балаңыздың аты-жөні мен сыныбын енгізіңіз.</li>
+    <li>Мұғалімдерді таңдаңыз — бірден бірнешеуін таңдауға болады.</li>
+    <li>Бетті жаппаңыз: кезегіңіз келгенде телефон дыбыс береді.</li>
+  </ol>
+  <div class="tools">
+    <label for="u">QR-кодтағы мекенжай (қажет болса өзгертіңіз):</label>
+    <input id="u" type="url">
+    <button onclick="window.print()">Басып шығару</button>
+  </div>
+</div>
+<script>
+  const input = document.getElementById('u');
+  function draw() {
+    const v = input.value.trim();
+    document.getElementById('qr').src = '/api/qr.svg?url=' + encodeURIComponent(v);
+    document.getElementById('url').textContent = v.replace(/^https?:\/\//, '');
+  }
+  input.value = location.origin + '/?role=parent';
+  input.addEventListener('input', draw);
+  draw();
+</script>
+</body>
+</html>
