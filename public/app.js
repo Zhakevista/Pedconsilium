@@ -18,7 +18,10 @@
 
   const people = (n) => n + ' адам';
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const subjName = (key) => (SUBJECTS.find((s) => s.key === key) || { name: key }).name;
+  const subjName = (key) => {
+    const s = SUBJECTS.find((x) => x.key === key);
+    return s ? s.name + (s.teacher ? ' · ' + s.teacher : '') : '';
+  };
   const mmss = (sec) => {
     sec = Math.max(0, Math.floor(sec));
     return String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
@@ -273,7 +276,7 @@
   function renderTeacherSubjects() {
     const box = $('t-subjects');
     box.innerHTML = SUBJECTS.map((s) =>
-      `<button class="choice" data-subj="${s.key}" aria-pressed="false">${esc(s.name)}</button>`).join('');
+      `<button class="choice" data-subj="${s.key}" aria-pressed="false">${esc(s.name)}${s.teacher ? `<span class="choice-teacher">${esc(s.teacher)}</span>` : ''}</button>`).join('');
     box.querySelectorAll('.choice').forEach((b) => b.addEventListener('click', () => {
       box.querySelectorAll('.choice').forEach((x) => x.setAttribute('aria-pressed', 'false'));
       b.setAttribute('aria-pressed', 'true');
@@ -321,7 +324,7 @@
     const prevStart = T.view && T.view.current ? T.view.current.startedAt : null;
     T.view = v;
     TIMER_SEC = v.timerSec || TIMER_SEC;
-    $('t-subject-name').textContent = v.subject.name;
+    $('t-subject-name').textContent = v.subject.name + (v.subject.teacher ? ' · ' + v.subject.teacher : '');
     $('t-current-name').textContent = v.current ? v.current.name : 'Ешкім жоқ';
     $('t-current-child').textContent = v.current && v.current.child ? 'Баласы: ' + v.current.child : '';
 
@@ -421,8 +424,8 @@
     err.textContent = '';
     const name = $('p-name').value.trim().replace(/\s+/g, ' ');
     const child = $('p-child').value.trim().replace(/\s+/g, ' ');
-    if (name.split(' ').length < 2) { err.textContent = 'Тегіңіз бен атыңызды енгізіңіз'; $('p-name').focus(); return; }
-    if (child.length < 3) { err.textContent = 'Баланың аты-жөні мен сыныбын енгізіңіз'; $('p-child').focus(); return; }
+    if (name.length < 2) { err.textContent = 'Атыңызды енгізіңіз'; $('p-name').focus(); return; }
+    if (child.length < 2) { err.textContent = 'Баланың аты мен сыныбын енгізіңіз'; $('p-child').focus(); return; }
     try {
       const prev = LS.get('pk_parent');
       const r = await api('/api/parent/login', { name, child, id: prev && prev.id });
@@ -453,7 +456,7 @@
     try { await api('/api/parent/login', saved); } catch (_) {}
   }
   $('p-logout').addEventListener('click', () => {
-    if (!confirm('Шығасыз ба? Кезектегі жазылуларыңыз сақталады — оларға оралу үшін сол аты-жөніңізбен қайта кіріңіз.')) return;
+    if (!confirm('Шығасыз ба? Кезектегі жазылуларыңыз сақталады — оларға оралу үшін өз атыңызды және баланың атын сол күйінде қайта енгізіңіз.')) return;
     Live.stop(); KeepAwake.disable(); stopCallRepeat(); setAlert(null);
     LS.del('pk_parent'); P.me = null; P.view = null;
     $('p-name').value = ''; $('p-child').value = '';
@@ -469,7 +472,7 @@
   function renderParent(v) {
     const prevRecords = P.view ? P.view.records : [];
     P.view = v;
-    SUBJECTS = v.subjects.map((s) => ({ key: s.key, name: s.name }));
+    SUBJECTS = v.subjects.map((s) => ({ key: s.key, name: s.name, teacher: s.teacher || '' }));
     const recs = v.records;
 
     // Новый вызов — автоматически переключаемся на этот предмет
@@ -513,7 +516,7 @@
       const joined = recs.some((r) => r.subject === s.key);
       const doneHere = v.done.includes(s.key);
       return `<button class="subject-btn ${joined ? 'joined' : ''}" data-subject="${s.key}">
-        <span><span class="sb-name">${esc(s.name)}</span><br>
+        <span><span class="sb-name">${esc(s.name)}</span><br>${s.teacher ? `<span class="sb-teacher">${esc(s.teacher)}</span><br>` : ''}
         <span class="sb-meta">${s.waiting ? 'кезекте: ' + people(s.waiting) : 'кезек жоқ'}${doneHere && !joined ? ' · сіз болдыңыз ✓' : ''}</span></span>
         <span class="sb-action">${joined ? '✓ Жазылдыңыз' : 'Кезекке тұру →'}</span>
       </button>`;
@@ -657,10 +660,7 @@
       const r = await api('/api/subjects');
       SUBJECTS = r.subjects; TIMER_SEC = r.timerSec;
     } catch (_) {
-      SUBJECTS = [
-        { key: 'hist', name: 'Қазақстан тарихы' }, { key: 'alg', name: 'Алгебра' },
-        { key: 'phys', name: 'Физика' }, { key: 'inf', name: 'Информатика' },
-      ];
+      SUBJECTS = [];
     }
     renderTeacherSubjects();
 

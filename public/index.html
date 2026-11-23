@@ -37,7 +37,7 @@
   <section id="screen-teacher-login" class="screen hidden">
     <button class="back" data-go="role">← Артқа</button>
     <h2>Мұғалімге кіру</h2>
-    <p class="label">Пәніңіз</p>
+    <p class="label">Пәніңіз / сіз</p>
     <div id="t-subjects" class="choice-grid"></div>
     <label class="label" for="t-pin">PIN-код</label>
     <input id="t-pin" class="input input-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="••••">
@@ -89,10 +89,10 @@
   <section id="screen-parent-login" class="screen hidden">
     <button class="back" data-go="role">← Артқа</button>
     <h2>Ата-анаға кіру</h2>
-    <label class="label" for="p-name">Сіздің аты-жөніңіз</label>
-    <input id="p-name" class="input" type="text" autocomplete="name" autocapitalize="words" placeholder="Мысалы: Ахметова Айгерим Серікқызы" maxlength="80">
-    <label class="label" for="p-child">Баланың аты-жөні және сыныбы</label>
-    <input id="p-child" class="input" type="text" autocomplete="off" autocapitalize="words" placeholder="Мысалы: Ахметов Нұрлан, 9 «А»" maxlength="80">
+    <label class="label" for="p-name">Сіздің атыңыз</label>
+    <input id="p-name" class="input" type="text" autocomplete="name" autocapitalize="words" placeholder="Мысалы: Айгерим" maxlength="80">
+    <label class="label" for="p-child">Баланың аты және сыныбы</label>
+    <input id="p-child" class="input" type="text" autocomplete="off" autocapitalize="words" placeholder="Мысалы: Нұрлан, 9 «А»" maxlength="80">
     <p id="p-login-error" class="error" role="alert"></p>
     <button id="p-login-btn" class="btn btn-xl btn-primary">Жалғастыру</button>
     <p class="muted small">Деректер бір рет енгізіледі. Содан кейін бірнеше мұғалімге бірден жазыла аласыз.</p>

@@ -93,6 +93,8 @@ h3 { font-size: 0.78rem; margin: 2em 0 0.7em; font-weight: 700; text-transform: 
   border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--fg);
   font: inherit; font-weight: 700; min-height: 66px; padding: 8px; cursor: pointer; box-shadow: var(--shadow);
 }
+.choice-teacher { display: block; font-weight: 500; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.choice[aria-pressed="true"] .choice-teacher { color: var(--accent-hover); }
 .choice[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-hover); box-shadow: inset 0 0 0 1.5px var(--accent); }
 
 /* ---------- Шапка ---------- */
@@ -166,6 +168,7 @@ h3 { font-size: 0.78rem; margin: 2em 0 0.7em; font-weight: 700; text-transform: 
   font: inherit; padding: 14px 16px; min-height: var(--tap); cursor: pointer; box-shadow: var(--shadow);
 }
 .subject-btn .sb-name { font-weight: 800; font-size: 1.05rem; }
+.subject-btn .sb-teacher { font-size: 0.9rem; font-weight: 600; }
 .subject-btn .sb-meta { font-size: 0.8rem; color: var(--muted); }
 .subject-btn .sb-action { font-weight: 700; white-space: nowrap; font-size: 0.9rem; color: var(--accent); }
 .subject-btn.joined { background: var(--accent-soft); border-color: #bfdde6; box-shadow: none; }
