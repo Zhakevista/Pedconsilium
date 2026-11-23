@@ -1,7 +1,8 @@
 /**
  * «Педконсилиум» — электронная очередь для родительского собрания.
  * Сервер без внешних зависимостей: только встроенные модули Node.js (>= 18).
- * Запуск:  node server.js        (порт: PORT, PIN учителя: PIN, по умолчанию 2026)
+ * Запуск:  node server.js
+ * Предметы, учителя, PIN и длительность приёма настраиваются в файле config.json.
  */
 'use strict';
 
@@ -11,18 +12,39 @@ const path = require('path');
 const crypto = require('crypto');
 
 const PORT = Number(process.env.PORT) || 3000;
-const PIN = String(process.env.PIN || '2026');
-const TIMER_SEC = Number(process.env.TIMER_SEC) || 300; // 5 минут
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-const SUBJECTS = [
-  { key: 'hist', name: 'Қазақстан тарихы' },
-  { key: 'alg', name: 'Алгебра' },
-  { key: 'phys', name: 'Физика' },
-  { key: 'inf', name: 'Информатика' },
-];
+/* ---------- Настройки из config.json ---------- */
+let CONFIG;
+try {
+  CONFIG = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+} catch (e) {
+  console.error('ОШИБКА в config.json — проверьте кавычки и запятые:', e.message);
+  process.exit(1);
+}
+const PIN = String(CONFIG.pin || process.env.PIN || '2026');
+const TIMER_SEC = Number(process.env.TIMER_SEC) || Math.round((Number(CONFIG.minutes) || 5) * 60);
+
+// Каждая строка в "teachers" — отдельная очередь (предмет + учитель).
+// Ключ очереди вычисляется из названия предмета и имени учителя.
+const SUBJECTS = (CONFIG.teachers || [])
+  .map((t) => ({ name: String(t.subject || '').trim(), teacher: String(t.teacher || '').trim() }))
+  .filter((t) => t.name)
+  .map((t) => ({
+    key: 'k' + crypto.createHash('sha1').update(t.name + '|' + t.teacher).digest('hex').slice(0, 8),
+    name: t.name,
+    teacher: t.teacher,
+  }));
+if (!SUBJECTS.length) {
+  console.error('ОШИБКА: в config.json нет ни одного предмета');
+  process.exit(1);
+}
 const SUBJECT_BY_KEY = Object.fromEntries(SUBJECTS.map((s) => [s.key, s]));
+const labelOf = (key) => {
+  const s = SUBJECT_BY_KEY[key];
+  return s ? s.name + (s.teacher ? ' · ' + s.teacher : '') : '';
+};
 
 /* ------------------------------------------------------------------ */
 /*  Состояние                                                          */
@@ -58,7 +80,7 @@ function save() {
 }
 
 const newId = () => crypto.randomBytes(8).toString('hex');
-const normName = (n) => String(n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const normName = (n) => String(n || '').trim().replace(/\s+/g, ' ').toLowerCase().replace(/[«»"']/g, '');
 
 /** В каком кабинете родитель сейчас на приёме (ключ предмета или null). */
 function busyIn(parentId) {
@@ -109,6 +131,7 @@ function parentView(parentId) {
     subjects: SUBJECTS.map((s) => ({
       key: s.key,
       name: s.name,
+      teacher: s.teacher,
       waiting: state.subjects[s.key].queue.length + (state.subjects[s.key].current ? 1 : 0),
     })),
     records,
@@ -135,7 +158,7 @@ function teacherView(subjKey) {
         name: nameOf(q.parentId),
         child: childOf(q.parentId),
         joinedAt: q.joinedAt,
-        busyIn: b && b !== subjKey ? SUBJECT_BY_KEY[b].name : null,
+        busyIn: b && b !== subjKey ? labelOf(b) : null,
       };
     }),
     served: sub.served,
@@ -214,7 +237,8 @@ function readBody(req) {
 }
 
 function teacherSubject(token) {
-  return (token && state.teacherTokens[token]) || null;
+  const k = token && state.teacherTokens[token];
+  return k && SUBJECT_BY_KEY[k] ? k : null;
 }
 
 const MIME = {
@@ -315,11 +339,14 @@ async function handleApi(req, res, url) {
   if (p === '/api/parent/login') {
     const name = String(b.name || '').trim().replace(/\s+/g, ' ').slice(0, 80);
     const child = String(b.child || '').trim().replace(/\s+/g, ' ').slice(0, 80);
-    if (name.length < 3) return json(res, 400, { error: 'Аты-жөніңізді толық енгізіңіз' });
+    if (name.length < 2) return json(res, 400, { error: 'Атыңызды енгізіңіз' });
     let parent = b.id && state.parents[b.id];
     if (!parent) {
       // Тот же человек с другого телефона — возвращаем его записи
-      parent = Object.values(state.parents).find((x) => normName(x.name) === normName(name));
+      // Совпадение и имени родителя, и имени/класса ребёнка (только имён мало: «Айгерим» может быть не одна)
+      parent = child && Object.values(state.parents).find(
+        (x) => normName(x.name) === normName(name) && normName(x.child) === normName(child)
+      );
     }
     if (!parent) {
       const id = typeof b.id === 'string' && /^[a-f0-9]{16}$/.test(b.id) ? b.id : newId();

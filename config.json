@@ -1,0 +1,10 @@
+{
+  "pin": "2026",
+  "minutes": 5,
+  "teachers": [
+    { "subject": "Қазақстан тарихы", "teacher": "" },
+    { "subject": "Алгебра",          "teacher": "" },
+    { "subject": "Физика",           "teacher": "" },
+    { "subject": "Информатика",      "teacher": "" }
+  ]
+}
