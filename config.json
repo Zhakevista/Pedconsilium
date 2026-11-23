@@ -3,7 +3,7 @@
   "minutes": 5,
   "teachers": [
     { "subject": "Қазақстан тарихы", "teacher": "" },
-    { "subject": "Алгебра",          "teacher": "" },
+    { "subject": "Алгебра",          "Аликулов Асқар": "" },
     { "subject": "Физика",           "teacher": "" },
     { "subject": "Информатика",      "teacher": "" }
   ]
